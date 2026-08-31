@@ -1,2 +1,2 @@
 # FreeRTOS
-As a part of post-dissertation learning, I will be exploring the FreeRTOS 
+This repo is for documenting the FreeRTOS + Logic Analyser learning using STM32F411RE Nucleo.
