@@ -21,7 +21,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
-// #include "cmsis_os.h"
+//#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -45,7 +45,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+TaskHandle_t Task1Handle;
+TaskHandle_t Task2Handle;
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 /* osThreadId_t defaultTaskHandle;
@@ -59,11 +60,25 @@ const osThreadAttr_t defaultTask_attributes = {
 /* USER CODE BEGIN FunctionPrototypes */
 void TaskPB13(void *argument);
 void TaskPB14(void *argument);
+void Delay(uint32_t gap);
+extern void Error_Handler(void);
 /* USER CODE END FunctionPrototypes */
 
- // void StartDefaultTask(void *argument);
+// void StartDefaultTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* Hook prototypes */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName);
+
+/* USER CODE BEGIN 4 */
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+{
+   /* Run time stack overflow checking is performed if
+   configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2. This hook function is
+   called if a stack overflow is detected. */
+}
+/* USER CODE END 4 */
 
 /**
   * @brief  FreeRTOS initialization
@@ -97,20 +112,26 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
       // Create Task for PB13
-      xTaskCreate(TaskPB13,
+	BaseType_t status;
+
+	status = xTaskCreate(TaskPB13,
                   "PB13Task",
                   128,        // stack size in words
                   NULL,
-                  tskIDLE_PRIORITY + 1,
-                  NULL);
+                  1,
+                  &Task1Handle);
+
+	if (status != pdPASS) Error_Handler();
 
       // Create Task for PB14
-      xTaskCreate(TaskPB14,
+      status = xTaskCreate(TaskPB14,
                   "PB14Task",
                   128,
                   NULL,
-                  tskIDLE_PRIORITY + 1,
-                  NULL);
+                  3,
+                  &Task2Handle);
+
+      if (status != pdPASS) Error_Handler();
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -126,8 +147,8 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-//void StartDefaultTask(void *argument)
-//{
+/*void StartDefaultTask(void *argument)
+{
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
  /* for(;;)
@@ -136,50 +157,38 @@ void MX_FREERTOS_Init(void) {
   }
   /* USER CODE END StartDefaultTask */
 // }
+
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 void TaskPB13(void *argument)
   {
-      (void)argument;
-
-      for (;;)
+     for (;;)
       {
-          // Set PB13 high
-          HAL_GPIO_WritePin(GPIOB, task_1_Pin, GPIO_PIN_SET);
-
-
-          // 1 ms delay
-          vTaskDelay(pdMS_TO_TICKS(1));
-
-          // Set PB13 low
-          HAL_GPIO_WritePin(GPIOB, task_1_Pin, GPIO_PIN_RESET);
-
-
-          // 1 ms delay
-          vTaskDelay(pdMS_TO_TICKS(1));
+          // toggle PB13 high
+          HAL_GPIO_TogglePin(GPIOB, task_1_Pin);
+          // 5 ms delay
+          vTaskDelay(pdMS_TO_TICKS(5));
       }
   }
 
   void TaskPB14(void *argument)
   {
-      (void)argument;
-
-      for (;;)
+     for (;;)
       {
-          // Set PB14 high
-          HAL_GPIO_WritePin(GPIOB, task_2_Pin, GPIO_PIN_SET);
+          /* Block until notified by EXTI ISR */
+                  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
+                  HAL_GPIO_WritePin(GPIOB, task_2_Pin, GPIO_PIN_SET);
+                  Delay(100000);
 
-          // 2 ms delay
-          vTaskDelay(pdMS_TO_TICKS(2));
-
-          // Set PB14 low
-          HAL_GPIO_WritePin(GPIOB, task_2_Pin, GPIO_PIN_RESET);
-
-
-          // 2 ms delay
-          vTaskDelay(pdMS_TO_TICKS(2));
+                  HAL_GPIO_WritePin(GPIOB, task_2_Pin, GPIO_PIN_RESET);
+                  
       }
+  }
+
+  void Delay(uint32_t gap) {
+      volatile uint32_t i;
+      for(i = 0; i < gap; i++);
   }
 /* USER CODE END Application */
 
